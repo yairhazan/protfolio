@@ -1,9 +1,11 @@
-import Link from 'next/link'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { ChevronRight, DollarSign, PieChart, TrendingUp } from 'lucide-react'
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { ChevronRight, DollarSign, PieChart, TrendingUp } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 export default function LandingPage() {
+  const [, setLocation] = useLocation();
+
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100">
       {/* Hero Section */}
@@ -18,17 +20,22 @@ export default function LandingPage() {
               Take control of your financial future with Pro-tfolio, your all-in-one dashboard. Track investments, manage pensions, and monitor stocks in real-time.
             </p>
             <div className="flex justify-center space-x-4">
-              <Link href="/register">
-                <Button size="lg" className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full transition-all duration-300 transform hover:scale-105">
-                  Get Started
-                  <ChevronRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button size="lg" variant="outline" className="bg-gray-800 text-green-500 border-green-500 font-bold py-3 px-6 rounded-full transition-all duration-300 hover:bg-gray-700">
-                  Login
-                </Button>
-              </Link>
+              <Button 
+                size="lg" 
+                className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full transition-all duration-300 transform hover:scale-105"
+                onClick={() => setLocation('/register')}
+              >
+                Get Started
+                <ChevronRight className="ml-2 h-5 w-5" />
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="bg-gray-800 text-green-500 border-green-500 font-bold py-3 px-6 rounded-full transition-all duration-300 hover:bg-gray-700"
+                onClick={() => setLocation('/login')}
+              >
+                Login
+              </Button>
             </div>
           </div>
         </div>
@@ -78,21 +85,23 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="py-20 bg-gray-800">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Elevate Your Financial Management with Pro-tfolio?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Elevate Your Financial Management?</h2>
           <p className="text-xl mb-8">Join thousands of users who have already transformed their financial management.</p>
-          <Link href="/register">
-            <Button size="lg" className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full transition-all duration-300 transform hover:scale-105">
-              Start Your Free Trial
-              <ChevronRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
+          <Button 
+            size="lg" 
+            className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full transition-all duration-300 transform hover:scale-105"
+            onClick={() => setLocation('/register')}
+          >
+            Start Your Free Trial
+            <ChevronRight className="ml-2 h-5 w-5" />
+          </Button>
         </div>
       </section>
     </div>
-  )
+  );
 }
 
-function FeatureCard({ icon, title, description }) {
+function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
     <Card className="bg-gray-700 border-gray-600 hover:border-green-500 transition-all duration-300">
       <CardContent className="p-6">
@@ -103,10 +112,10 @@ function FeatureCard({ icon, title, description }) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
-function TestimonialCard({ quote, author }) {
+function TestimonialCard({ quote, author }: { quote: string; author: string }) {
   return (
     <Card className="bg-gray-700 border-gray-600">
       <CardContent className="p-6">
@@ -114,6 +123,5 @@ function TestimonialCard({ quote, author }) {
         <p className="text-right text-gray-300">- {author}</p>
       </CardContent>
     </Card>
-  )
+  );
 }
-
