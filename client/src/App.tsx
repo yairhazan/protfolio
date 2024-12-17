@@ -1,11 +1,13 @@
 import { Switch, Route } from "wouter";
 import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
 import DashboardPage from "@/pages/DashboardPage";
 import InvestmentsPage from "@/pages/InvestmentsPage";
 import PensionPage from "@/pages/PensionPage";
 import StocksPage from "@/pages/StocksPage";
 import SettingsPage from "@/pages/SettingsPage";
 import DiagnosticsPage from "@/pages/DiagnosticsPage";
+import ProfilePage from "@/pages/ProfilePage";
 import LandingPage from "@/pages/LandingPage";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,12 +18,14 @@ function App() {
     <AuthProvider>
       <Switch>
         <Route path="/login" component={LoginPage} />
+        <Route path="/register" component={RegisterPage} />
         <Route path="/dashboard" component={DashboardPage} />
         <Route path="/investments" component={InvestmentsPage} />
         <Route path="/pension" component={PensionPage} />
         <Route path="/stocks" component={StocksPage} />
         <Route path="/settings" component={SettingsPage} />
         <Route path="/diagnostics" component={DiagnosticsPage} />
+        <Route path="/profile" component={ProfilePage} />
         <Route path="/" component={LandingPage} />
         <Route component={NotFound} />
       </Switch>

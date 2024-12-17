@@ -4,14 +4,18 @@ import { Bell, User, LogOut } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { signOutUser } from "@/lib/firebase"
 
-export function Header() {
+interface HeaderProps {
+  children?: React.ReactNode;
+}
+
+export function Header({ children }: HeaderProps) {
   const [, setLocation] = useLocation()
   const [notificationsActive, setNotificationsActive] = useState(false)
 
   const handleLogout = async () => {
     try {
       await signOutUser()
-      setLocation('/login')
+      setLocation('/')
     } catch (error) {
       console.error("Failed to sign out:", error)
     }
@@ -22,24 +26,35 @@ export function Header() {
   }
 
   return (
-    <header className="flex justify-between items-center py-4 px-6 bg-gray-800 border-b border-gray-700">
-      <div className="flex items-center">
+    <header className="sticky top-0 z-40 flex items-center justify-between py-3 px-4 sm:px-6 bg-gray-800 border-b border-gray-700">
+      <div className="flex items-center gap-3">
+        {children}
         <Button 
-          variant="outline" 
+          variant="ghost" 
           size="icon" 
-          className={`text-gray-300 hover:text-green-500 transition-colors duration-300 ${
-            notificationsActive ? 'bg-green-500 text-white hover:bg-green-600' : ''
+          className={`hidden sm:flex text-gray-400 hover:text-green-500 bg-gray-900 hover:bg-gray-950 ${
+            notificationsActive ? 'bg-gray-950 text-green-500' : ''
           }`}
           onClick={toggleNotifications}
         >
           <Bell className={`h-5 w-5 ${notificationsActive ? 'animate-ring' : ''}`} />
         </Button>
       </div>
-      <div className="flex items-center space-x-4">
-        <Button variant="outline" size="icon" className="text-gray-300 hover:text-green-500" onClick={() => setLocation('/profile')}>
+      <div className="flex items-center gap-2 sm:gap-4">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="text-gray-400 hover:text-green-500 bg-gray-900 hover:bg-gray-950"
+          onClick={() => setLocation('/profile')}
+        >
           <User className="h-5 w-5" />
         </Button>
-        <Button variant="outline" size="icon" className="text-gray-300 hover:text-green-500" onClick={handleLogout}>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="text-gray-400 hover:text-green-500 bg-gray-900 hover:bg-gray-950"
+          onClick={handleLogout}
+        >
           <LogOut className="h-5 w-5" />
         </Button>
       </div>
