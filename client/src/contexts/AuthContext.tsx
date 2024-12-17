@@ -30,8 +30,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(user);
       setLoading(false);
       
-      // Only redirect if not on login page and not authenticated
-      if (!user && window.location.pathname !== '/login') {
+      // Define public routes that don't require authentication
+      const publicRoutes = ['/', '/login'];
+      
+      // Only redirect if not on a public page and not authenticated
+      if (!user && !publicRoutes.includes(window.location.pathname)) {
         console.log("AuthProvider: Redirecting to login");
         setLocation('/login');
       }
