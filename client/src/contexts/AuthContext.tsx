@@ -8,7 +8,10 @@ interface AuthContextType {
   loading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true
+});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -16,19 +19,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
+    console.log("AuthProvider: Setting up auth state listener");
+
     const unsubscribe = onAuthStateChange((user) => {
+      console.log("AuthProvider: Auth state changed", {
+        user: user ? "Logged in" : "Logged out",
+        currentPath: window.location.pathname
+      });
+
       setUser(user);
       setLoading(false);
       
-      // Redirect to login if not authenticated
+      // Only redirect if not on login page and not authenticated
       if (!user && window.location.pathname !== '/login') {
+        console.log("AuthProvider: Redirecting to login");
         setLocation('/login');
+      }
+      
+      // Redirect to dashboard if authenticated and on login page
+      if (user && window.location.pathname === '/login') {
+        console.log("AuthProvider: Redirecting to dashboard");
+        setLocation('/dashboard');
       }
     });
 
-    // Cleanup subscription
-    return unsubscribe;
+    // Cleanup subscription on unmount
+    return () => {
+      console.log("AuthProvider: Cleaning up auth state listener");
+      unsubscribe();
+    };
   }, [setLocation]);
+
+  if (loading) {
+    console.log("AuthProvider: Loading auth state");
+  }
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
@@ -37,4 +61,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

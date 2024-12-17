@@ -1,18 +1,32 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { signInWithGoogle } from "@/lib/firebase";
 import { useLocation } from "wouter";
 import { FcGoogle } from "react-icons/fc";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
+  const [loading, setLoading] = useState(false);
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const handleGoogleSignIn = async () => {
     try {
+      setLoading(true);
+      console.log("LoginPage: Starting Google sign in");
       await signInWithGoogle();
+      console.log("LoginPage: Sign in successful");
       setLocation('/dashboard');
     } catch (error) {
-      console.error("Failed to sign in:", error);
+      console.error("LoginPage: Failed to sign in:", error);
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "Failed to sign in with Google. Please try again."
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -28,10 +42,11 @@ export default function LoginPage() {
           <Button 
             variant="outline" 
             onClick={handleGoogleSignIn}
-            className="bg-white text-gray-900 hover:bg-gray-100"
+            disabled={loading}
+            className="bg-white text-gray-900 hover:bg-gray-100 relative"
           >
             <FcGoogle className="mr-2 h-4 w-4" />
-            Sign in with Google
+            {loading ? "Signing in..." : "Sign in with Google"}
           </Button>
         </CardContent>
       </Card>

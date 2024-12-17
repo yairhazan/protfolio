@@ -7,49 +7,77 @@ import {
   onAuthStateChanged,
   type User 
 } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+
+if (!import.meta.env.VITE_FIREBASE_API_KEY) {
+  throw new Error("Missing Firebase API Key");
+}
+
+if (!import.meta.env.VITE_FIREBASE_PROJECT_ID) {
+  throw new Error("Missing Firebase Project ID");
+}
+
+if (!import.meta.env.VITE_FIREBASE_APP_ID) {
+  throw new Error("Missing Firebase App ID");
+}
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  messagingSenderId: "",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
+
+// Add debug logging for config issues
+console.log("Initializing Firebase with config:", {
+  ...firebaseConfig,
+  apiKey: "HIDDEN" // Don't log the API key
+});
+
+console.log("Initializing Firebase with config:", {
+  ...firebaseConfig,
+  apiKey: "HIDDEN"
+});
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Initialize Auth and Firestore
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+const auth = getAuth(app);
 
 // Google Authentication
-export const signInWithGoogle = async () => {
+export async function signInWithGoogle() {
   const provider = new GoogleAuthProvider();
   try {
+    console.log("Attempting Google sign in");
     const result = await signInWithPopup(auth, provider);
+    console.log("Google sign in successful");
     return result.user;
   } catch (error) {
-    console.error("Error signing in with Google:", error);
+    console.error("Google sign in error:", error);
     throw error;
   }
-};
+}
 
 // Sign out
-export const signOutUser = async () => {
+export async function signOutUser() {
   try {
+    console.log("Attempting sign out");
     await signOut(auth);
+    console.log("Sign out successful");
   } catch (error) {
-    console.error("Error signing out:", error);
+    console.error("Sign out error:", error);
     throw error;
   }
-};
+}
 
 // Auth state observer
-export const onAuthStateChange = (callback: (user: User | null) => void) => {
-  return onAuthStateChanged(auth, callback);
-};
+export function onAuthStateChange(callback: (user: User | null) => void) {
+  console.log("Setting up auth state observer");
+  return onAuthStateChanged(auth, (user) => {
+    console.log("Auth state changed:", user ? "User logged in" : "User logged out");
+    callback(user);
+  });
+}
 
-// Types
+export { auth };
 export type { User };
