@@ -1,25 +1,26 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { addStock } from "@/lib/userService";
-import { useToast } from "@/components/ui/use-toast";
-
-// Alpha Vantage API key should be in your environment variables
-const ALPHA_VANTAGE_API_KEY = import.meta.env.VITE_ALPHA_VANTAGE_API_KEY;
+import { useToast } from "@/hooks/use-toast";
+import { debounce } from "@/lib/utils";
+import { searchStocks, getStockBySymbol, type MockStock } from "@/lib/mockStockData";
 
 interface StockSearchResult {
   symbol: string;
   name: string;
   price: number;
+  currency: string;
 }
 
 interface AddStockModalProps {
@@ -37,6 +38,7 @@ export function AddStockModal({ onStockAdded }: AddStockModalProps) {
   const [shares, setShares] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
   const [adding, setAdding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const resetForm = () => {
     setSelectedStock(null);
@@ -44,100 +46,84 @@ export function AddStockModal({ onStockAdded }: AddStockModalProps) {
     setPurchasePrice("");
     setSearchQuery("");
     setSearchResults([]);
+    setError(null);
   };
 
-  const searchStocks = async () => {
-    if (!searchQuery) return;
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
     
     setSearching(true);
+    setError(null);
     try {
-      const response = await fetch(
-        `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${searchQuery}&apikey=${ALPHA_VANTAGE_API_KEY}`
-      );
-      const data = await response.json();
-      
-      if (data.bestMatches) {
-        // Get current price for each match
-        const results = await Promise.all(
-          data.bestMatches.slice(0, 5).map(async (match: any) => {
-            const priceResponse = await fetch(
-              `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${match['1. symbol']}&apikey=${ALPHA_VANTAGE_API_KEY}`
-            );
-            const priceData = await priceResponse.json();
-            const price = priceData['Global Quote']?.['05. price'] 
-              ? parseFloat(priceData['Global Quote']['05. price'])
-              : 0;
+      // First, try exact symbol match
+      const exactSymbol = searchQuery.toUpperCase().trim();
+      const exactMatch = getStockBySymbol(exactSymbol);
 
-            return {
-              symbol: match['1. symbol'],
-              name: match['2. name'],
-              price,
-            };
-          })
-        );
+      if (exactMatch) {
+        setSearchResults([exactMatch]);
+        setError(null);
+        setSearching(false);
+        return;
+      }
+
+      // If no exact match, search for stocks
+      const results = searchStocks(searchQuery);
+
+      if (!results.length) {
+        setError("No stocks found. Try a different search term.");
+        setSearchResults([]);
+      } else {
         setSearchResults(results);
+        setError(null);
       }
     } catch (error) {
       console.error('Error searching stocks:', error);
-      toast({
-        title: "Error",
-        description: "Failed to search for stocks. Please try again.",
-        variant: "destructive",
-      });
+      setError("An error occurred while searching. Please try again.");
     } finally {
       setSearching(false);
     }
   };
+
+  // Create debounced search function
+  const debouncedSearch = useCallback(
+    debounce(async (query: string) => {
+      if (query.length < 2) return;
+      await handleSearch();
+    }, 300),
+    []
+  );
+
+  // Update search when query changes
+  useEffect(() => {
+    if (searchQuery.trim().length >= 2) {
+      debouncedSearch(searchQuery);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery, debouncedSearch]);
 
   const handleStockSelect = (stock: StockSearchResult) => {
     setSelectedStock(stock);
     setPurchasePrice(stock.price.toString());
     setSearchResults([]);
     setSearchQuery("");
+    setError(null);
   };
 
   const handleAddStock = async () => {
-    if (!selectedStock || !shares || !purchasePrice || !user) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const sharesNum = parseInt(shares);
-    const priceNum = parseFloat(purchasePrice);
-
-    if (isNaN(sharesNum) || sharesNum <= 0) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid number of shares",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (isNaN(priceNum) || priceNum <= 0) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid purchase price",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!selectedStock || !shares || !purchasePrice || !user) return;
 
     setAdding(true);
     try {
       await addStock(user.uid, {
         symbol: selectedStock.symbol,
-        shares: sharesNum,
-        purchasePrice: priceNum,
+        shares: parseInt(shares),
+        purchasePrice: parseFloat(purchasePrice),
       });
 
       toast({
-        title: "Success",
-        description: `Added ${sharesNum} shares of ${selectedStock.symbol} to your portfolio`,
+        title: "Stock Added",
+        description: `Successfully added ${shares} shares of ${selectedStock.symbol}`,
       });
 
       // Reset form and close modal
@@ -150,7 +136,7 @@ export function AddStockModal({ onStockAdded }: AddStockModalProps) {
       console.error('Error adding stock:', error);
       toast({
         title: "Error",
-        description: "Failed to add stock to portfolio. Please try again.",
+        description: "Failed to add stock. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -158,20 +144,10 @@ export function AddStockModal({ onStockAdded }: AddStockModalProps) {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault(); // Prevent default form submission
-      if (!selectedStock) {
-        searchStocks();
-      } else {
-        handleAddStock();
-      }
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchQuery.trim().length >= 2 && !searching) {
+      handleSearch();
     }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await handleAddStock();
   };
 
   return (
@@ -190,25 +166,31 @@ export function AddStockModal({ onStockAdded }: AddStockModalProps) {
           Add Stock
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-gray-800 text-gray-100">
+      <DialogContent 
+        className="bg-gray-800 text-gray-100"
+        aria-describedby="add-stock-description"
+      >
         <DialogHeader>
           <DialogTitle>Add Stock to Portfolio</DialogTitle>
+          <DialogDescription id="add-stock-description" className="text-gray-400">
+            Search for a stock by symbol or company name and add it to your portfolio.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           {!selectedStock ? (
             <div className="space-y-4">
               <div className="flex gap-2">
                 <Input
-                  placeholder="Search for a stock..."
+                  placeholder="Enter stock symbol (e.g., AAPL) or company name"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={handleKeyDown}
+                  onKeyDown={handleKeyPress}
                   className="bg-gray-700 border-gray-600 text-gray-100"
+                  autoFocus
                 />
                 <Button 
-                  type="button"
-                  onClick={searchStocks}
-                  disabled={searching || !searchQuery}
+                  onClick={() => handleSearch()}
+                  disabled={searching || searchQuery.trim().length < 2}
                   className="bg-green-500 hover:bg-green-600"
                 >
                   {searching ? (
@@ -218,12 +200,18 @@ export function AddStockModal({ onStockAdded }: AddStockModalProps) {
                   )}
                 </Button>
               </div>
+              
+              {error && (
+                <div className="text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+
               {searchResults.length > 0 && (
-                <div className="border border-gray-700 rounded-lg divide-y divide-gray-700">
+                <div className="border border-gray-700 rounded-lg divide-y divide-gray-700 max-h-60 overflow-y-auto">
                   {searchResults.map((result) => (
                     <button
                       key={result.symbol}
-                      type="button"
                       className="w-full px-4 py-2 text-left hover:bg-gray-700 flex justify-between items-center"
                       onClick={() => handleStockSelect(result)}
                     >
@@ -240,14 +228,13 @@ export function AddStockModal({ onStockAdded }: AddStockModalProps) {
               )}
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-4">
               <div className="flex justify-between items-center p-4 bg-gray-700 rounded-lg">
                 <div>
                   <div className="font-medium">{selectedStock.symbol}</div>
                   <div className="text-sm text-gray-400">{selectedStock.name}</div>
                 </div>
                 <Button
-                  type="button"
                   variant="ghost"
                   className="text-gray-400 hover:text-gray-100"
                   onClick={() => setSelectedStock(null)}
@@ -259,43 +246,29 @@ export function AddStockModal({ onStockAdded }: AddStockModalProps) {
                 <label className="text-sm text-gray-400">Number of Shares</label>
                 <Input
                   type="number"
-                  min="1"
-                  step="1"
                   value={shares}
                   onChange={(e) => setShares(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddStock();
-                    }
-                  }}
                   className="bg-gray-700 border-gray-600 text-gray-100"
                   placeholder="Enter number of shares"
-                  required
+                  min="0"
+                  step="1"
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm text-gray-400">Purchase Price per Share</label>
                 <Input
                   type="number"
-                  min="0.01"
-                  step="0.01"
                   value={purchasePrice}
                   onChange={(e) => setPurchasePrice(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddStock();
-                    }
-                  }}
                   className="bg-gray-700 border-gray-600 text-gray-100"
                   placeholder="Enter purchase price"
-                  required
+                  min="0"
+                  step="0.01"
                 />
               </div>
               <Button
-                type="submit"
                 className="w-full bg-green-500 hover:bg-green-600"
+                onClick={handleAddStock}
                 disabled={adding || !shares || !purchasePrice}
               >
                 {adding ? (
@@ -305,7 +278,7 @@ export function AddStockModal({ onStockAdded }: AddStockModalProps) {
                 )}
                 Add to Portfolio
               </Button>
-            </form>
+            </div>
           )}
         </div>
       </DialogContent>
