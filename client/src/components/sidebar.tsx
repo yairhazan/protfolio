@@ -40,6 +40,14 @@ export function Sidebar() {
             <span className="text-sm font-medium">Settings</span>
           </button>
         </li>
+        <li>
+          <button onClick={() => setLocation('/diagnostics')} className="flex flex-row items-center h-12 transform hover:translate-x-2 transition-transform ease-in duration-200 text-gray-300 hover:text-green-500">
+            <span className="inline-flex items-center justify-center h-12 w-12 text-lg text-gray-400">
+              <AlertOctagon className="h-5 w-5" />
+            </span>
+            <span className="text-sm font-medium">Diagnostics</span>
+          </button>
+        </li>
       </ul>
     </div>
   )

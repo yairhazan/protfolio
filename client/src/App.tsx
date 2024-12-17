@@ -5,6 +5,7 @@ import InvestmentsPage from "@/pages/InvestmentsPage";
 import PensionPage from "@/pages/PensionPage";
 import StocksPage from "@/pages/StocksPage";
 import SettingsPage from "@/pages/SettingsPage";
+import DiagnosticsPage from "@/pages/DiagnosticsPage";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
@@ -19,6 +20,7 @@ function App() {
         <Route path="/pension" component={PensionPage} />
         <Route path="/stocks" component={StocksPage} />
         <Route path="/settings" component={SettingsPage} />
+        <Route path="/diagnostics" component={DiagnosticsPage} />
         <Route path="/" component={DashboardPage} />
         <Route component={NotFound} />
       </Switch>

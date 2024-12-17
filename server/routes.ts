@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { logEvent, getRecentLogs, type LogLevel } from "./services/logging";
 
 export function registerRoutes(app: Express): Server {
   // API routes for portfolio data
@@ -23,6 +24,41 @@ export function registerRoutes(app: Express): Server {
         { symbol: "TSLA", name: "Tesla, Inc.", shares: 20, price: 725.60, change: -0.5 }
       ]
     });
+  });
+
+  // Logging endpoints
+  app.post('/api/logs', async (req, res) => {
+    try {
+      const { level, source, message, metadata, userId } = req.body;
+      
+      if (!level || !source || !message) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+      
+      await logEvent({
+        level: level as LogLevel,
+        source,
+        message,
+        metadata,
+        userId
+      });
+      
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Error logging event:', error);
+      res.status(500).json({ error: 'Failed to log event' });
+    }
+  });
+
+  app.get('/api/logs', async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const logs = await getRecentLogs(limit);
+      res.json(logs);
+    } catch (error) {
+      console.error('Error fetching logs:', error);
+      res.status(500).json({ error: 'Failed to fetch logs' });
+    }
   });
 
   const httpServer = createServer(app);
