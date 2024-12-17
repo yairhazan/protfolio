@@ -1,5 +1,5 @@
 import { useLocation } from "wouter"
-import { Home, PieChart, TrendingUp, DollarSign, Settings } from 'lucide-react'
+import { Home, PieChart, TrendingUp, DollarSign, Settings, AlertOctagon } from 'lucide-react'
 
 export function Sidebar() {
   const [, setLocation] = useLocation()

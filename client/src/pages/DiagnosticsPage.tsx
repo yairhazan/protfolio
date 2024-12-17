@@ -18,8 +18,18 @@ const LOG_LEVEL_ICONS = {
   error: <AlertOctagon className="w-4 h-4 text-red-500" />
 };
 
+interface Log {
+  id: number;
+  timestamp: string;
+  level: 'info' | 'warn' | 'error';
+  source: string;
+  message: string;
+  metadata?: Record<string, any>;
+  userId?: number;
+}
+
 export default function DiagnosticsPage() {
-  const { data: logs = [], isLoading } = useQuery({
+  const { data: logs = [], isLoading } = useQuery<Log[]>({
     queryKey: ["/api/logs"],
   });
 
